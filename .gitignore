@@ -1,5 +1,5 @@
-src/build/*
-build/*
+src/build/
+build/
 src/imgui.ini
 .vscode/
 src/.vscode/
