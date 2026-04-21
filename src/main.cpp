@@ -263,7 +263,7 @@ struct App : public OpenGLApplication
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         updateCameraInput();
-        updateSpherePosition();
+        updateAnimations();
         
         glm::mat4 view = getViewMatrix();
         glm::mat4 proj = getPerspectiveProjectionMatrix();
@@ -273,14 +273,19 @@ struct App : public OpenGLApplication
         drawSword(projView);
     }
 
-    void updateSpherePosition()
+    void updateAnimations()
     {
-        const float ANIMATION_SPEED = 0.02f; 
-        
-        spherePhase_ += ANIMATION_SPEED;
-
+        const float SPHERE_ANIM_SPEED = 0.02f; 
+        spherePhase_ += SPHERE_ANIM_SPEED;
         if (spherePhase_ > glm::two_pi<float>()) {
             spherePhase_ -= glm::two_pi<float>();
+        }
+
+        const float SWORD_ROTATION_SPEED = 0.01f;
+        swordAngle_ += SWORD_ROTATION_SPEED;
+        
+        if (swordAngle_ > glm::two_pi<float>()) {
+            swordAngle_ -= glm::two_pi<float>();
         }
     }
 
@@ -315,7 +320,7 @@ struct App : public OpenGLApplication
     {
         glm::mat4 swordModel = glm::mat4(1.0f);
         swordModel = glm::translate(swordModel, glm::vec3(0.5f, -2.5f, -2.0f));
-        swordModel = glm::rotate(swordModel, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+        swordModel = glm::rotate(swordModel, swordAngle_, glm::vec3(0.0f, 1.0f, 0.0f));
         swordModel = glm::scale(swordModel, glm::vec3(2.0f));
 
         glm::mat4 swordMVP = projView * swordModel;
@@ -353,6 +358,7 @@ private:
     float sphereOffset_ = 0.0f;      
     float sphereDirection_ = 1.0f;
     float spherePhase_ = 0.0f;
+    float swordAngle_ = 0.0f;
 };
 
 
