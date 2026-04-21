@@ -105,6 +105,7 @@ struct App : public OpenGLApplication
 
         // Load shaders
         textureShader_.create();
+        sphereShader_.create();
 
         // Load textures
         staffTexture_.load("../textures/Staff.png");
@@ -115,13 +116,11 @@ struct App : public OpenGLApplication
         swordTextureBase_.setWrap(GL_REPEAT);
         swordTextureBase_.setFiltering(GL_LINEAR);
 
-        swordTextureAO_.load("../textures/Longsword_10_low_Longsword_10_ao.jpg");
-        swordTextureAO_.setWrap(GL_REPEAT);
-        swordTextureAO_.setFiltering(GL_LINEAR);
-
         // Load models
-        staffModel_.load("../models/staff.ply");
+        staffMainModel_.load("../models/staff-main.ply");
+        staffSphereModel_.load("../models/staff-sphere.ply");
         swordModel_.load("../models/sword.ply");
+
 	}
 
 	// Appelée à chaque trame. Le buffer swap est fait juste après.
@@ -269,36 +268,42 @@ struct App : public OpenGLApplication
         glm::mat4 proj = getPerspectiveProjectionMatrix();
         glm::mat4 projView = proj * view;
 
-        textureShader_.use();
         drawStaff(projView);
         drawSword(projView);
     }
 
     void drawStaff(const glm::mat4& projView)
     {
-        staffTexture_.use();
         glm::mat4 staffModel = glm::mat4(1.0f);
         staffModel = glm::translate(staffModel, glm::vec3(-0.5f, -2.5f, -2.0f));
         staffModel = glm::rotate(staffModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         staffModel = glm::scale(staffModel, glm::vec3(2.0f));
 
         glm::mat4 staffMVP = projView * staffModel;
+
+        textureShader_.use();
+        staffTexture_.use();
         glUniformMatrix4fv(textureShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(staffMVP));
-        staffModel_.draw();
+        staffMainModel_.draw();
+
+        sphereShader_.use();
+        glUniformMatrix4fv(sphereShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(staffMVP));
+        glUniform3f(sphereShader_.colorULoc, 1.0f, 1.0f, 1.0f); 
+        staffSphereModel_.draw();
     }
 
     void drawSword(const glm::mat4& projView)
     {
-        swordTextureBase_.use();
         glm::mat4 swordModel = glm::mat4(1.0f);
         swordModel = glm::translate(swordModel, glm::vec3(0.5f, -2.5f, -2.0f));
         swordModel = glm::rotate(swordModel, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         swordModel = glm::scale(swordModel, glm::vec3(2.0f));
 
         glm::mat4 swordMVP = projView * swordModel;
+
+        textureShader_.use();
+        swordTextureBase_.use();
         glUniformMatrix4fv(textureShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(swordMVP));
-        swordModel_.draw();
-        swordTextureAO_.use();
         swordModel_.draw();
     }
     
@@ -315,14 +320,16 @@ private:
     
     bool isMouseMotionEnabled_;
 
-    Model staffModel_;
+    Model staffMainModel_;
+    Model staffSphereModel_;
     Model swordModel_;
 
     Texture2D staffTexture_;
     Texture2D swordTextureBase_;
-    Texture2D swordTextureAO_;
 
     BaseTexShader textureShader_;
+
+    SphereShader sphereShader_;
 };
 
 
