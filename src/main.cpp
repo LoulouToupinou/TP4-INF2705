@@ -328,13 +328,7 @@ struct App : public OpenGLApplication
         staffModel = glm::translate(staffModel, glm::vec3(-0.5f, -2.5f, -2.0f));
         staffModel = glm::rotate(staffModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         staffModel = glm::scale(staffModel, glm::vec3(2.0f));
-
         glm::mat4 staffMVP = projView * staffModel;
-
-        bezierShader_.use();
-        staffTexture_.use();
-        glUniformMatrix4fv(bezierShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(staffMVP));
-        staffMainModel_.draw();
 
         const float AMPLITUDE = 0.02f; 
         
@@ -352,10 +346,6 @@ struct App : public OpenGLApplication
         glUniform3f(phongShader_.lightColorULoc, 0.1f, 0.85f, 1.0f);
         staffSphereModel_.draw();
         glUniform1i(phongShader_.isLightSourceULoc, false);
-
-
-
-        glm::mat4 staffMVP = projView * staffModel;
 
         staffTexture_.use();
         glUniformMatrix4fv(phongShader_.mULoc, 1, GL_FALSE, glm::value_ptr(staffModel));
