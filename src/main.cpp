@@ -80,7 +80,6 @@ struct App : public OpenGLApplication
 
         // Load shaders
         bezierShader_.create();
-        sphereShader_.create();
         phongShader_.create();
 
         // Load textures
@@ -314,8 +313,8 @@ struct App : public OpenGLApplication
         glm::mat4 bezierMVP = projView * bezierModel;
 
         bezierShader_.use(); 
-        glUniformMatrix4fv(sphereShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(bezierMVP));
-        glUniform3f(sphereShader_.colorULoc, 1.0f, 0.0f, 0.0f);
+        glUniformMatrix4fv(bezierShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(bezierMVP));
+        glUniform3f(bezierShader_.colorULoc, 1.0f, 0.0f, 0.0f);
 
         glBindVertexArray(vaoBezier_);
         glDrawArrays(GL_LINE_STRIP, 0, numBezierVerts_);
@@ -324,19 +323,20 @@ struct App : public OpenGLApplication
 
     void drawStaff(const glm::mat4& projView)
     {
+        const float AMPLITUDE = 0.02f; 
+        const float LOCAL_Y_OFFSET = 1.22f;
+
         glm::mat4 staffModel = glm::mat4(1.0f);
         staffModel = glm::translate(staffModel, glm::vec3(-0.5f, -2.5f, -2.0f));
         staffModel = glm::rotate(staffModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         staffModel = glm::scale(staffModel, glm::vec3(2.0f));
         glm::mat4 staffMVP = projView * staffModel;
-
-        const float AMPLITUDE = 0.02f; 
         
         float sphereOffset = std::sin(spherePhase_) * AMPLITUDE;
 
         glm::mat4 sphereModel = glm::translate(staffModel, glm::vec3(0.0f, sphereOffset, 0.0f));
         glm::mat4 sphereMVP = projView * sphereModel;
-        glm::vec3 sphereCenter = glm::vec3(sphereModel * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        glm::vec3 sphereCenter = glm::vec3(sphereModel * glm::vec4(0.0f, LOCAL_Y_OFFSET, 0.0f, 1.0f));
 
         phongShader_.use();
         glUniformMatrix4fv(phongShader_.mULoc, 1, GL_FALSE, glm::value_ptr(sphereModel));
@@ -398,7 +398,7 @@ private:
     glm::vec3 cameraPosition_;
     glm::vec2 cameraOrientation_;
 
-    GLfloat ambientLight_ = 1.0f;
+    GLfloat ambientLight_ = 0.5f;
     
     // Imgui var
     const char* const SCENE_NAMES[1] = {
@@ -418,7 +418,6 @@ private:
     Texture2D swordTextureBase_;
 
     BezierShader bezierShader_;
-    SphereShader sphereShader_;
     PhongShader phongShader_;
 
     float sphereOffset_ = 0.0f;      
