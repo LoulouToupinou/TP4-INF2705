@@ -40,48 +40,6 @@ struct App : public OpenGLApplication
     {
     }
 
-    GLuint loadShaderObject(GLenum type, const char* path)
-    {
-		GLuint shader = glCreateShader(type);
-
-		std::string srcStd = readFile(path).c_str();
-        const char* srcC = srcStd.c_str();
-
-		glShaderSource(shader, 1, &srcC, nullptr);
-		glCompileShader(shader);
-		checkShaderCompilingError(path, shader);
-        return shader;
-    }
-
-   void checkShaderCompilingError(const char* name, GLuint id)
-    {
-        GLint success;
-        GLchar infoLog[1024];
-
-        glGetShaderiv(id, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(id, 1024, NULL, infoLog);
-            glDeleteShader(id);
-            std::cout << "Shader \"" << name << "\" compile error: " << infoLog << std::endl;
-        }
-    }
-
-
-    void checkProgramLinkingError(const char* name, GLuint id)
-    {
-        GLint success;
-        GLchar infoLog[1024];
-
-        glGetProgramiv(id, GL_LINK_STATUS, &success);
-        if (!success)
-        {
-            glGetProgramInfoLog(id, 1024, NULL, infoLog);
-            glDeleteProgram(id);
-            std::cout << "Program \"" << name << "\" linking error: " << infoLog << std::endl;
-        }
-    }
-	
 	void init() override
 	{
 		// Le message expliquant les touches de clavier.
@@ -104,8 +62,8 @@ struct App : public OpenGLApplication
         glDepthFunc(GL_LESS);
 
         // Load shaders
-        textureShader_.create();
         sphereShader_.create();
+        phongShader_.create();
 
         // Load textures
         staffTexture_.load("../textures/Staff.png");
@@ -129,6 +87,7 @@ struct App : public OpenGLApplication
         
         ImGui::Begin("Scene Parameters");
         ImGui::Combo("Scene", &currentScene_, SCENE_NAMES, N_SCENE_NAMES);
+        ImGui::SliderFloat("Ambient light", &ambientLight_, 0.0f, 1.0f);
         ImGui::End();
         
         switch (currentScene_)
@@ -269,6 +228,10 @@ struct App : public OpenGLApplication
         glm::mat4 proj = getPerspectiveProjectionMatrix();
         glm::mat4 projView = proj * view;
 
+        phongShader_.use();
+        glUniform3fv(phongShader_.cameraPositionULoc, 1, glm::value_ptr(cameraPosition_));
+        phongShader_.setMaterial({ambientLight_, 0.2f, 1.0f, 32.0f});
+
         drawStaff(projView);
         drawSword(projView);
     }
@@ -281,12 +244,12 @@ struct App : public OpenGLApplication
             spherePhase_ -= glm::two_pi<float>();
         }
 
-        const float SWORD_ROTATION_SPEED = 0.01f;
-        swordAngle_ += SWORD_ROTATION_SPEED;
+        // const float SWORD_ROTATION_SPEED = 0.01f;
+        // swordAngle_ += SWORD_ROTATION_SPEED;
         
-        if (swordAngle_ > glm::two_pi<float>()) {
-            swordAngle_ -= glm::two_pi<float>();
-        }
+        // if (swordAngle_ > glm::two_pi<float>()) {
+        //     swordAngle_ -= glm::two_pi<float>();
+        // }
     }
 
     void drawStaff(const glm::mat4& projView)
@@ -296,24 +259,31 @@ struct App : public OpenGLApplication
         staffModel = glm::rotate(staffModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         staffModel = glm::scale(staffModel, glm::vec3(2.0f));
 
-        glm::mat4 staffMVP = projView * staffModel;
-
-        textureShader_.use();
-        staffTexture_.use();
-        glUniformMatrix4fv(textureShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(staffMVP));
-        staffMainModel_.draw();
-
-        const float AMPLITUDE = 0.02f; 
+        const float AMPLITUDE = 0.1f; 
         
         float sphereOffset = std::sin(spherePhase_) * AMPLITUDE;
 
         glm::mat4 sphereModel = glm::translate(staffModel, glm::vec3(0.0f, sphereOffset, 0.0f));
         glm::mat4 sphereMVP = projView * sphereModel;
+        glm::vec3 sphereCenter = glm::vec3(sphereModel * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-        sphereShader_.use();
-        glUniformMatrix4fv(sphereShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(sphereMVP));
-        glUniform3f(sphereShader_.colorULoc, 0.1f, 0.85f, 1.0f); 
+        phongShader_.use();
+        glUniformMatrix4fv(phongShader_.mULoc, 1, GL_FALSE, glm::value_ptr(sphereModel));
+        glUniformMatrix4fv(phongShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(sphereMVP));
+        glUniform3f(phongShader_.lightPositionULoc, sphereCenter.x, sphereCenter.y, sphereCenter.z);
+        glUniform1i(phongShader_.isLightSourceULoc, true);
+        glUniform3f(phongShader_.lightColorULoc, 0.1f, 0.85f, 1.0f);
         staffSphereModel_.draw();
+        glUniform1i(phongShader_.isLightSourceULoc, false);
+
+
+
+        glm::mat4 staffMVP = projView * staffModel;
+
+        staffTexture_.use();
+        glUniformMatrix4fv(phongShader_.mULoc, 1, GL_FALSE, glm::value_ptr(staffModel));
+        glUniformMatrix4fv(phongShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(staffMVP));
+        staffMainModel_.draw();
     }
 
     void drawSword(const glm::mat4& projView)
@@ -325,15 +295,18 @@ struct App : public OpenGLApplication
 
         glm::mat4 swordMVP = projView * swordModel;
 
-        textureShader_.use();
+        phongShader_.use();
         swordTextureBase_.use();
-        glUniformMatrix4fv(textureShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(swordMVP));
+        glUniformMatrix4fv(phongShader_.mULoc, 1, GL_FALSE, glm::value_ptr(swordModel));
+        glUniformMatrix4fv(phongShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(swordMVP));
         swordModel_.draw();
     }
     
 private:    
     glm::vec3 cameraPosition_;
     glm::vec2 cameraOrientation_;
+
+    GLfloat ambientLight_ = 1.0f;
     
     // Imgui var
     const char* const SCENE_NAMES[1] = {
@@ -351,9 +324,8 @@ private:
     Texture2D staffTexture_;
     Texture2D swordTextureBase_;
 
-    BaseTexShader textureShader_;
-
     SphereShader sphereShader_;
+    PhongShader phongShader_;
 
     float sphereOffset_ = 0.0f;      
     float sphereDirection_ = 1.0f;
