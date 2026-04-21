@@ -8,7 +8,7 @@ struct Material
     GLfloat shininess;
 };
 
-class BaseTexShader : public ShaderProgram
+class BezierShader : public ShaderProgram
 {
 public:
     GLuint mvpULoc;
