@@ -263,6 +263,7 @@ struct App : public OpenGLApplication
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         updateCameraInput();
+        updateSpherePosition();
         
         glm::mat4 view = getViewMatrix();
         glm::mat4 proj = getPerspectiveProjectionMatrix();
@@ -270,6 +271,17 @@ struct App : public OpenGLApplication
 
         drawStaff(projView);
         drawSword(projView);
+    }
+
+    void updateSpherePosition()
+    {
+        const float ANIMATION_SPEED = 0.02f; 
+        
+        spherePhase_ += ANIMATION_SPEED;
+
+        if (spherePhase_ > glm::two_pi<float>()) {
+            spherePhase_ -= glm::two_pi<float>();
+        }
     }
 
     void drawStaff(const glm::mat4& projView)
@@ -286,9 +298,16 @@ struct App : public OpenGLApplication
         glUniformMatrix4fv(textureShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(staffMVP));
         staffMainModel_.draw();
 
+        const float AMPLITUDE = 0.02f; 
+        
+        float sphereOffset = std::sin(spherePhase_) * AMPLITUDE;
+
+        glm::mat4 sphereModel = glm::translate(staffModel, glm::vec3(0.0f, sphereOffset, 0.0f));
+        glm::mat4 sphereMVP = projView * sphereModel;
+
         sphereShader_.use();
-        glUniformMatrix4fv(sphereShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(staffMVP));
-        glUniform3f(sphereShader_.colorULoc, 1.0f, 1.0f, 1.0f); 
+        glUniformMatrix4fv(sphereShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(sphereMVP));
+        glUniform3f(sphereShader_.colorULoc, 0.1f, 0.85f, 1.0f); 
         staffSphereModel_.draw();
     }
 
@@ -330,6 +349,10 @@ private:
     BaseTexShader textureShader_;
 
     SphereShader sphereShader_;
+
+    float sphereOffset_ = 0.0f;      
+    float sphereDirection_ = 1.0f;
+    float spherePhase_ = 0.0f;
 };
 
 
