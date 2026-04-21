@@ -1,6 +1,6 @@
 #include "shader_program.hpp"
 
-class BaseTexShader : public ShaderProgram
+class BezierShader : public ShaderProgram
 {
 public:
     GLuint mvpULoc;

@@ -29,6 +29,23 @@
 using namespace gl;
 using namespace glm;
 
+struct BezierCurve
+{
+    glm::vec3 p0;
+    glm::vec3 c0;
+    glm::vec3 c1;
+    glm::vec3 p1;
+};
+
+glm::vec3 calculateBezier(const BezierCurve& curve, float t) {
+    float u = 1.0f - t;
+    const float b0 = std::pow(u, 3);
+    const float b1 = 3.0f * t * u * u;
+    const float b2 = 3.0f * t * t * u;
+    const float b3 = std::pow(t, 3);
+    return b0 * curve.p0 + b1 * curve.c0 + b2 * curve.c1 + b3 * curve.p1;
+}
+
 
 struct App : public OpenGLApplication
 {
@@ -104,7 +121,7 @@ struct App : public OpenGLApplication
         glDepthFunc(GL_LESS);
 
         // Load shaders
-        textureShader_.create();
+        bezierShader_.create();
         sphereShader_.create();
 
         // Load textures
@@ -121,6 +138,24 @@ struct App : public OpenGLApplication
         staffSphereModel_.load("../models/staff-sphere.ply");
         swordModel_.load("../models/sword.ply");
 
+        glGenVertexArrays(1, &vaoBezier_);
+        glGenBuffers(1, &vboBezier_);
+        glBindVertexArray(vaoBezier_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboBezier_);
+
+        std::vector<glm::vec3> bezierPoints;
+        const int nSegments = 50;
+        for (int j = 0; j <= nSegments; ++j) {
+            float t = static_cast<float>(j) / static_cast<float>(nSegments);
+            bezierPoints.push_back(calculateBezier(swordCurve_, t));
+        }
+        numBezierVerts_ = bezierPoints.size();
+
+        glBufferData(GL_ARRAY_BUFFER, numBezierVerts_ * sizeof(glm::vec3), bezierPoints.data(), GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+        glBindVertexArray(0);
 	}
 
 	// Appelée à chaque trame. Le buffer swap est fait juste après.
@@ -129,6 +164,12 @@ struct App : public OpenGLApplication
         
         ImGui::Begin("Scene Parameters");
         ImGui::Combo("Scene", &currentScene_, SCENE_NAMES, N_SCENE_NAMES);
+        if (ImGui::Button("Animate Sword"))
+        {
+            isAnimatingSword_ = true;
+            swordAnimationProgress_ = 0.0f;
+        }
+        ImGui::Checkbox("Show Bezier Curve", &showBezierCurve_);
         ImGui::End();
         
         switch (currentScene_)
@@ -271,6 +312,11 @@ struct App : public OpenGLApplication
 
         drawStaff(projView);
         drawSword(projView);
+
+        if (showBezierCurve_)
+        {
+            drawBezierCurve(projView);
+        }
     }
 
     void updateAnimations()
@@ -281,12 +327,35 @@ struct App : public OpenGLApplication
             spherePhase_ -= glm::two_pi<float>();
         }
 
-        const float SWORD_ROTATION_SPEED = 0.01f;
-        swordAngle_ += SWORD_ROTATION_SPEED;
-        
-        if (swordAngle_ > glm::two_pi<float>()) {
-            swordAngle_ -= glm::two_pi<float>();
+        if (isAnimatingSword_) {
+            swordAnimationProgress_ += deltaTime_ * 0.5f; 
+
+            if (swordAnimationProgress_ >= 1.0f) {
+                isAnimatingSword_ = false;
+                swordAnimationProgress_ = 0.0f;
+            }
+        } else {
+            const float SWORD_ROTATION_SPEED = 0.01f;
+            swordAngle_ += SWORD_ROTATION_SPEED;
+
+            if (swordAngle_ > glm::two_pi<float>()) {
+                swordAngle_ -= glm::two_pi<float>();
+            }
         }
+    }
+
+    void drawBezierCurve(const glm::mat4& projView)
+    {
+        glm::mat4 bezierModel = glm::mat4(1.0f);
+        glm::mat4 bezierMVP = projView * bezierModel;
+
+        sphereShader_.use(); 
+        glUniformMatrix4fv(sphereShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(bezierMVP));
+        glUniform3f(sphereShader_.colorULoc, 1.0f, 0.0f, 0.0f);
+
+        glBindVertexArray(vaoBezier_);
+        glDrawArrays(GL_LINE_STRIP, 0, numBezierVerts_);
+        glBindVertexArray(0);
     }
 
     void drawStaff(const glm::mat4& projView)
@@ -298,9 +367,9 @@ struct App : public OpenGLApplication
 
         glm::mat4 staffMVP = projView * staffModel;
 
-        textureShader_.use();
+        bezierShader_.use();
         staffTexture_.use();
-        glUniformMatrix4fv(textureShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(staffMVP));
+        glUniformMatrix4fv(bezierShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(staffMVP));
         staffMainModel_.draw();
 
         const float AMPLITUDE = 0.02f; 
@@ -319,15 +388,37 @@ struct App : public OpenGLApplication
     void drawSword(const glm::mat4& projView)
     {
         glm::mat4 swordModel = glm::mat4(1.0f);
-        swordModel = glm::translate(swordModel, glm::vec3(0.5f, -2.5f, -2.0f));
-        swordModel = glm::rotate(swordModel, swordAngle_, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        if (isAnimatingSword_)
+        {
+            glm::vec3 currentPos = calculateBezier(swordCurve_, swordAnimationProgress_);
+            swordModel = glm::translate(swordModel, currentPos);
+
+            glm::vec3 nextPos = calculateBezier(swordCurve_, swordAnimationProgress_ + 0.01f);
+            glm::vec3 dir = nextPos - currentPos;
+
+            dir = glm::normalize(dir);
+            float rotY = std::atan2(dir.x, dir.z);
+            float rotX = std::atan2(dir.y, std::sqrt(dir.x * dir.x + dir.z * dir.z));
+
+            swordModel = glm::rotate(swordModel, rotY, glm::vec3(0.0f, 1.0f, 0.0f));
+            swordModel = glm::rotate(swordModel, -rotX, glm::vec3(1.0f, 0.0f, 0.0f));
+
+            float tilt = glm::mix(-glm::pi<float>() / 2.0f, glm::pi<float>() / 2.0f, swordAnimationProgress_);
+            swordModel = glm::rotate(swordModel, tilt, glm::vec3(1.0f, 0.0f, 0.0f));
+        } else
+        {
+            swordModel = glm::translate(swordModel, glm::vec3(0.5f, -2.5f, -2.0f));
+            swordModel = glm::rotate(swordModel, swordAngle_, glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+
         swordModel = glm::scale(swordModel, glm::vec3(2.0f));
 
         glm::mat4 swordMVP = projView * swordModel;
 
-        textureShader_.use();
+        bezierShader_.use();
         swordTextureBase_.use();
-        glUniformMatrix4fv(textureShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(swordMVP));
+        glUniformMatrix4fv(bezierShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(swordMVP));
         swordModel_.draw();
     }
     
@@ -341,6 +432,7 @@ private:
     };
     const int N_SCENE_NAMES = sizeof(SCENE_NAMES) / sizeof(SCENE_NAMES[0]);
     int currentScene_;
+    bool showBezierCurve_ = false;
     
     bool isMouseMotionEnabled_;
 
@@ -351,14 +443,27 @@ private:
     Texture2D staffTexture_;
     Texture2D swordTextureBase_;
 
-    BaseTexShader textureShader_;
-
+    BezierShader bezierShader_;
     SphereShader sphereShader_;
 
     float sphereOffset_ = 0.0f;      
     float sphereDirection_ = 1.0f;
     float spherePhase_ = 0.0f;
     float swordAngle_ = 0.0f;
+
+    bool isAnimatingSword_ = false;
+    float swordAnimationProgress_ = 0.0f;
+    
+    BezierCurve swordCurve_ = {
+        glm::vec3(0.5f, -2.5f, -2.0f),
+        glm::vec3(-0.5f, 0.5f, -2.5f),
+        glm::vec3(2.5f, 0.5f, -2.5f),
+        glm::vec3(3.5f, -2.5f, -2.0f)
+    };
+
+    GLuint vaoBezier_ = 0;
+    GLuint vboBezier_ = 0;
+    int numBezierVerts_ = 0;
 };
 
 

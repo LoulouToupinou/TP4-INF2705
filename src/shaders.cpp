@@ -1,18 +1,18 @@
 #include "shaders.hpp"
 
-void BaseTexShader::load()
+void BezierShader::load()
 {
-    const char* VERTEX_SRC_PATH = "./shaders/transform.vs.glsl";
-    const char* FRAGMENT_SRC_PATH = "./shaders/transform.fs.glsl";
+    const char* VERTEX_SRC_PATH = "./shaders/bezier.vs.glsl";
+    const char* FRAGMENT_SRC_PATH = "./shaders/bezier.fs.glsl";
 
-    name_ = "BaseTexShader";
+    name_ = "BezierShader";
     loadShaderSource(GL_VERTEX_SHADER, VERTEX_SRC_PATH);
     loadShaderSource(GL_FRAGMENT_SHADER, FRAGMENT_SRC_PATH);
     link();
 
 }
 
-void BaseTexShader::getAllUniformLocations()
+void BezierShader::getAllUniformLocations()
 {
     mvpULoc = glGetUniformLocation(id_, "mvp");
 }
