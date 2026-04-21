@@ -313,7 +313,7 @@ struct App : public OpenGLApplication
         glm::mat4 bezierModel = glm::mat4(1.0f);
         glm::mat4 bezierMVP = projView * bezierModel;
 
-        sphereShader_.use(); 
+        bezierShader_.use(); 
         glUniformMatrix4fv(sphereShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(bezierMVP));
         glUniform3f(sphereShader_.colorULoc, 1.0f, 0.0f, 0.0f);
 
