@@ -408,11 +408,14 @@ struct App : public OpenGLApplication
             swordModel = glm::rotate(swordModel, tilt, glm::vec3(1.0f, 0.0f, 0.0f));
         } else
         {
-            swordModel = glm::translate(swordModel, glm::vec3(0.5f, -2.5f, -2.0f));
+            swordModel = glm::translate(swordModel, glm::vec3(0.5f, -0.1774f, -2.0f));
             swordModel = glm::rotate(swordModel, swordAngle_, glm::vec3(0.0f, 1.0f, 0.0f));
+            swordModel = glm::rotate(swordModel, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         }
 
         swordModel = glm::scale(swordModel, glm::vec3(2.0f));
+        swordModel = glm::rotate(swordModel, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        swordModel = glm::translate(swordModel, glm::vec3(0.0f, -1.1613f, 0.0f));
 
         glm::mat4 swordMVP = projView * swordModel;
 
@@ -455,10 +458,10 @@ private:
     float swordAnimationProgress_ = 0.0f;
     
     BezierCurve swordCurve_ = {
-        glm::vec3(0.5f, -2.5f, -2.0f),
-        glm::vec3(-0.5f, 0.5f, -2.5f),
-        glm::vec3(2.5f, 0.5f, -2.5f),
-        glm::vec3(3.5f, -2.5f, -2.0f)
+        glm::vec3(0.5f, -0.1774f, -2.0f),
+        glm::vec3(-0.5f, 2.8226f, -2.5f),
+        glm::vec3(2.5f, 2.8226f, -2.5f),
+        glm::vec3(3.5f, -0.1774f, -2.0f)
     };
 
     GLuint vaoBezier_ = 0;
