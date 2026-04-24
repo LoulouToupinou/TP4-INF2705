@@ -32,7 +32,7 @@ void main()
         vec3 L = normalize(vertexToLight);
         vec3 V = normalize(vertexToCamera);
         vec3 B = normalize(L + V);
-        float distanceFactor = 1 / (1 + 0.2 * d);
+        float distanceFactor = 1 / (1 + 0.1 * d + 0.01 * d* d);
         float angleLN = max(0.0, dot(L, N));
         float angleNB = max(0.0, dot(N, B));
         vec4 texColor = texture(textureSampler, texCoords);

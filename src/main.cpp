@@ -349,7 +349,7 @@ struct App : public OpenGLApplication
         glActiveTexture(GL_TEXTURE0);
         phongShader_.use();
         glUniform3fv(phongShader_.cameraPositionULoc, 1, glm::value_ptr(cameraPosition_));
-        phongShader_.setMaterial({ambientLight_, 0.2f, 1.0f, 32.0f});
+        phongShader_.setMaterial({ambientLight_, 0.2f, 1.0f, 80.0f});
 
         drawStaff(projView);
         drawSword(projView);
@@ -360,10 +360,11 @@ struct App : public OpenGLApplication
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        int amount = 10;
+        int nBlurs = 10;
         bool horizontal = true, first_iteration = true;
         bloomShader_.use();
-        for (unsigned int i = 0; i < amount; i++)
+        glActiveTexture(GL_TEXTURE0);
+        for (unsigned int i = 0; i < nBlurs; i++)
         {
             glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
             glUniform1i(bloomShader_.horizontalULoc, horizontal);
@@ -450,7 +451,7 @@ struct App : public OpenGLApplication
         glUniformMatrix4fv(phongShader_.mvpULoc, 1, GL_FALSE, glm::value_ptr(sphereMVP));
         glUniform3f(phongShader_.lightPositionULoc, sphereCenter.x, sphereCenter.y, sphereCenter.z);
         glUniform1i(phongShader_.isLightSourceULoc, true);
-        glUniform3f(phongShader_.lightColorULoc, 0.1f, 0.85f, 1.0f);
+            glUniform3f(phongShader_.lightColorULoc, 1.0f, 0.0f, 0.0f);
         staffSphereModel_.draw();
         glUniform1i(phongShader_.isLightSourceULoc, false);
 
@@ -558,7 +559,7 @@ private:
     GLuint quadVBO_ = 0;
 
     CombineShader combineShader_;
-    float exposure_ = 1.0f;
+    float exposure_ = 0.5f;
 };
 
 
