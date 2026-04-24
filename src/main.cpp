@@ -339,7 +339,6 @@ struct App : public OpenGLApplication
         updateCameraInput();
         updateAnimations();
 
-        // 1. Render scene into HDR FBO (two color attachments: scene + bright parts)
         glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO_);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -361,7 +360,6 @@ struct App : public OpenGLApplication
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // 2. Gaussian blur (ping-pong) on the bright-parts buffer
         int amount = 10;
         bool horizontal = true, first_iteration = true;
         bloomShader_.use();
@@ -379,7 +377,6 @@ struct App : public OpenGLApplication
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // 3. Combine: blend scene + blurred bloom, apply HDR tone-mapping
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         combineShader_.use();
         glActiveTexture(GL_TEXTURE0);
