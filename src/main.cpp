@@ -564,7 +564,7 @@ private:
     float exposure_ = 0.5f;
 
     bool isGammaCorrected_ = true;
-    float gammaCorrection_ = 0.5f;
+    float gammaCorrection_ = 1.0f;
 };
 
 
