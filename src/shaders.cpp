@@ -82,4 +82,6 @@ void CombineShader::getAllUniformLocations()
     sceneULoc    = glGetUniformLocation(id_, "scene");
     bloomBlurULoc = glGetUniformLocation(id_, "bloomBlur");
     exposureULoc = glGetUniformLocation(id_, "exposure");
+    gammaCorrectionULoc = glGetUniformLocation(id_, "gammaCorrection");
+    isGammaCorrectedULoc = glGetUniformLocation(id_, "isGammaCorrected");
 }

@@ -57,6 +57,8 @@ public:
     GLuint sceneULoc;
     GLuint bloomBlurULoc;
     GLuint exposureULoc;
+    GLuint gammaCorrectionULoc;
+    GLuint isGammaCorrectedULoc;
 
 protected:
     virtual void load() override;

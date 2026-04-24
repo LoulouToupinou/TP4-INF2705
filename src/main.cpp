@@ -204,6 +204,8 @@ struct App : public OpenGLApplication
         ImGui::Checkbox("Show Bezier Curve", &showBezierCurve_);
         ImGui::Checkbox("Spin Sword", &isSwordSpinning_);
         ImGui::SliderFloat("Ambient light", &ambientLight_, 0.0f, 1.0f);
+        ImGui::SliderFloat("Gamma Correction", &gammaCorrection_, 0.0f, 2.0f);
+        ImGui::Checkbox("Apply Gamma Correction", &isGammaCorrected_);
         ImGui::End();
        
         switch (currentScene_)
@@ -387,6 +389,8 @@ struct App : public OpenGLApplication
         glUniform1i(combineShader_.sceneULoc, 0);
         glUniform1i(combineShader_.bloomBlurULoc, 1);
         glUniform1f(combineShader_.exposureULoc, exposure_);
+        glUniform1i(combineShader_.isGammaCorrectedULoc, isGammaCorrected_);
+        glUniform1f(combineShader_.gammaCorrectionULoc, gammaCorrection_);
         renderQuad();
     }
 
@@ -560,6 +564,9 @@ private:
 
     CombineShader combineShader_;
     float exposure_ = 0.5f;
+
+    bool isGammaCorrected_ = true;
+    float gammaCorrection_ = 0.5f;
 };
 
 
