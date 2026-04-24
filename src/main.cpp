@@ -82,6 +82,7 @@ struct App : public OpenGLApplication
         bezierShader_.create();
         phongShader_.create();
         bloomShader_.create();
+        combineShader_.create();
 
         // Load textures
         staffTexture_.load("../textures/Staff.png");
@@ -116,9 +117,8 @@ struct App : public OpenGLApplication
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
         glBindVertexArray(0);
 
-        unsigned int hdrFBO;
-        glGenFramebuffers(1, &hdrFBO);
-        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+        glGenFramebuffers(1, &hdrFBO_);
+        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO_);
         glGenTextures(2, colorBuffers);
         sf::Vector2u windowSize = window_.getSize();
         for (unsigned int i = 0; i < 2; i++)
@@ -137,7 +137,14 @@ struct App : public OpenGLApplication
             );
         }  
         GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-        glDrawBuffers(2, attachments);  
+        glDrawBuffers(2, attachments);
+
+        glGenRenderbuffers(1, &hdrDepthRBO_);
+        glBindRenderbuffer(GL_RENDERBUFFER, hdrDepthRBO_);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, windowSize.x, windowSize.y);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, hdrDepthRBO_);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
         glGenFramebuffers(2, pingpongFBO);
@@ -171,8 +178,8 @@ struct App : public OpenGLApplication
         glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
         glBindVertexArray(0);
     }
 
@@ -329,14 +336,18 @@ struct App : public OpenGLApplication
     
     void sceneMain()
     {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         updateCameraInput();
         updateAnimations();
-        
+
+        // 1. Render scene into HDR FBO (two color attachments: scene + bright parts)
+        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO_);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         glm::mat4 view = getViewMatrix();
         glm::mat4 proj = getPerspectiveProjectionMatrix();
         glm::mat4 projView = proj * view;
 
+        glActiveTexture(GL_TEXTURE0);
         phongShader_.use();
         glUniform3fv(phongShader_.cameraPositionULoc, 1, glm::value_ptr(cameraPosition_));
         phongShader_.setMaterial({ambientLight_, 0.2f, 1.0f, 32.0f});
@@ -348,23 +359,37 @@ struct App : public OpenGLApplication
         {
             drawBezierCurve(projView);
         }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // 2. Gaussian blur (ping-pong) on the bright-parts buffer
         int amount = 10;
         bool horizontal = true, first_iteration = true;
         bloomShader_.use();
         for (unsigned int i = 0; i < amount; i++)
         {
-            glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]); 
+            glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
             glUniform1i(bloomShader_.horizontalULoc, horizontal);
             glBindTexture(
                 GL_TEXTURE_2D, first_iteration ? colorBuffers[1] : pingpongBuffers[!horizontal]
-            ); 
+            );
             renderQuad();
             horizontal = !horizontal;
             if (first_iteration)
                 first_iteration = false;
         }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); 
-        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // 3. Combine: blend scene + blurred bloom, apply HDR tone-mapping
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        combineShader_.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, pingpongBuffers[!horizontal]);
+        glUniform1i(combineShader_.sceneULoc, 0);
+        glUniform1i(combineShader_.bloomBlurULoc, 1);
+        glUniform1f(combineShader_.exposureULoc, exposure_);
+        renderQuad();
     }
 
     void updateAnimations()
@@ -526,12 +551,17 @@ private:
     GLuint vboBezier_ = 0;
     int numBezierVerts_ = 0;
 
+    unsigned int hdrFBO_ = 0;
+    unsigned int hdrDepthRBO_ = 0;
     unsigned int pingpongFBO[2];
     unsigned int pingpongBuffers[2];
     unsigned int colorBuffers[2];
 
     GLuint quadVAO_ = 0;
     GLuint quadVBO_ = 0;
+
+    CombineShader combineShader_;
+    float exposure_ = 1.0f;
 };
 
 

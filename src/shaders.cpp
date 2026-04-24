@@ -65,3 +65,21 @@ void BloomShader::getAllUniformLocations()
 {
     horizontalULoc = glGetUniformLocation(id_, "horizontal");
 }
+
+void CombineShader::load()
+{
+    const char* VERTEX_SRC_PATH = "./shaders/bloom.vs.glsl";
+    const char* FRAGMENT_SRC_PATH = "./shaders/combine.fs.glsl";
+
+    name_ = "CombineShader";
+    loadShaderSource(GL_VERTEX_SHADER, VERTEX_SRC_PATH);
+    loadShaderSource(GL_FRAGMENT_SHADER, FRAGMENT_SRC_PATH);
+    link();
+}
+
+void CombineShader::getAllUniformLocations()
+{
+    sceneULoc    = glGetUniformLocation(id_, "scene");
+    bloomBlurULoc = glGetUniformLocation(id_, "bloomBlur");
+    exposureULoc = glGetUniformLocation(id_, "exposure");
+}

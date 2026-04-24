@@ -50,3 +50,15 @@ protected:
     virtual void load() override;
     virtual void getAllUniformLocations() override;
 };
+
+class CombineShader : public ShaderProgram
+{
+public:
+    GLuint sceneULoc;
+    GLuint bloomBlurULoc;
+    GLuint exposureULoc;
+
+protected:
+    virtual void load() override;
+    virtual void getAllUniformLocations() override;
+};
