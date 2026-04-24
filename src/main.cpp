@@ -202,7 +202,7 @@ struct App : public OpenGLApplication
         ImGui::Checkbox("Show Bezier Curve", &showBezierCurve_);
         ImGui::Checkbox("Spin Sword", &isSwordSpinning_);
         ImGui::SliderFloat("Ambient light", &ambientLight_, 0.0f, 1.0f);
-        ImGui::SliderFloat("Gamma Correction", &gammaCorrection_, 0.0f, 2.0f);
+        ImGui::SliderFloat("Gamma Correction", &gammaCorrection_, 0.01f, 2.0f);
         ImGui::Checkbox("Apply Gamma Correction", &isGammaCorrected_);
         ImGui::End();
        

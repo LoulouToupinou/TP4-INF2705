@@ -29,12 +29,10 @@ vec3 hsvToRgb(vec3 color) {
 
 void main()
 {
-    const float gamma = 2.2;
     vec3 hdrColor = texture(scene, TexCoords).rgb;
     vec3 bloomColor = texture(bloomBlur, TexCoords).rgb;
     hdrColor += bloomColor;
     vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
-    result = pow(result, vec3(1.0 / gamma));
     if (isGammaCorrected)
     {
         vec3 hsvColor = rgbToHsv(result);
