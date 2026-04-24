@@ -49,3 +49,19 @@ void PhongShader::setMaterial(const Material material)
     glUniform1f(kSpecularULoc, material.kSpecular);
     glUniform1f(shininessULoc, material.shininess);
 }
+
+void BloomShader::load()
+{
+    const char* VERTEX_SRC_PATH = "./shaders/bloom.vs.glsl";
+    const char* FRAGMENT_SRC_PATH = "./shaders/bloom.fs.glsl";
+    
+    name_ = "BloomShader";
+    loadShaderSource(GL_VERTEX_SHADER, VERTEX_SRC_PATH);
+    loadShaderSource(GL_FRAGMENT_SHADER, FRAGMENT_SRC_PATH);
+    link();
+}
+
+void BloomShader::getAllUniformLocations()
+{
+    horizontalULoc = glGetUniformLocation(id_, "horizontal");
+}

@@ -40,3 +40,13 @@ private:
     GLuint kSpecularULoc;
     GLuint shininessULoc;
 };
+
+class BloomShader : public ShaderProgram
+{
+public:
+    GLuint horizontalULoc;
+
+protected:
+    virtual void load() override;
+    virtual void getAllUniformLocations() override;
+};
